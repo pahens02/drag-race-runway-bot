@@ -40,19 +40,27 @@ serve(async (req) => {
       const { name, options } = interaction.data;
 
       if (name === "get_runway_images") {
-        const seasonOpt = options?.find(opt => opt.name === "season");
+        const seasonOpt = options?.find((opt) => opt.name === "season");
         const seasonNumber = seasonOpt ? parseInt(seasonOpt.value, 10) : 17;
 
         try {
-          const responseMessage = await handleRunwayImagesRequest(seasonNumber);
+          const runwayData = await getSeasonRunwayImages(seasonNumber);
+
+          // Insert runway images into the database
+          const { error } = await supabase
+            .from("season_runways")
+            .insert(runwayData);
+
+          if (error) throw error;
+
           return new Response(
-            JSON.stringify({ type: 4, data: { content: responseMessage } }),
+            JSON.stringify({ type: 4, data: { content: `Runway images for Season ${seasonNumber} have been queued.` } }),
             { headers: { "Content-Type": "application/json" }, status: 200 }
           );
         } catch (err) {
           console.error("Error handling runway images:", err);
           return new Response(
-            JSON.stringify({ type: 4, data: { content: "An error occurred fetching runway images." } }),
+            JSON.stringify({ type: 4, data: { content: "An error occurred processing runway images." } }),
             { headers: { "Content-Type": "application/json" }, status: 200 }
           );
         }
@@ -62,7 +70,7 @@ serve(async (req) => {
     return new Response("ok", { status: 200 });
   }
 
-  return new Response("Hello from Discord Bot", { status: 200 });
+  return new Response("Hello from Supabase Edge Function", { status: 200 });
 });
 
 /**
